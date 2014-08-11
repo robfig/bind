@@ -428,15 +428,6 @@ func bindByteArray(binder Binder, name string, dst reflect.Value) error {
 	return nil
 }
 
-func bindReader(binder Binder, name string, dst reflect.Value) error {
-	reader, err := getMultipartFile(binder, name)
-	if err != nil {
-		return err
-	}
-	dst.Set(reflect.ValueOf(reader.(io.Reader)))
-	return nil
-}
-
 func bindReadSeeker(binder Binder, name string, dst reflect.Value) error {
 	reader, err := getMultipartFile(binder, name)
 	if err != nil {
