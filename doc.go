@@ -80,10 +80,10 @@ File Uploads
 
 File uploads may be bound to any of the following types:
 
- * *os.File
- * []byte
- * io.Reader
- * io.ReadSeeker
+ - *os.File
+ - []byte
+ - io.Reader
+ - io.ReadSeeker
 
 This is a wrapper around the upload handling provided by Go’s multipart
 package. The bytes stay in memory unless they exceed a threshold (10MB by
