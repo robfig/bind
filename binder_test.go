@@ -173,6 +173,32 @@ func TestBindStructs(t *testing.T) {
 	runBindTests(t, bindStructTests)
 }
 
+func TestBindAll(t *testing.T) {
+	var obj struct {
+		Id     int32
+		Labels []string
+		Pets   []struct {
+			Name string
+		}
+	}
+	var err = bind.Values(map[string][]string{
+		"Id":           {"5"},
+		"Labels":       {"foo", "bar"},
+		"Pets[0].Name": {"Lassie"},
+		"Pets[1].Name": {"Mabel"},
+	}).All(&obj)
+
+	if err != nil {
+		t.Error(err)
+	}
+	if obj.Id != 5 ||
+		!reflect.DeepEqual(obj.Labels, []string{"foo", "bar"}) ||
+		obj.Pets[0].Name != "Lassie" ||
+		obj.Pets[1].Name != "Mabel" {
+		t.Errorf("Wrong data, got %#v", obj)
+	}
+}
+
 // TestNilPointerDestination verifies that it returns an appropriate error if a
 // nil non-addressable pointer is passed, or that we new up a destination if we
 // get the address of a nil pointer.

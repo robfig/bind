@@ -44,6 +44,11 @@ func Map(m map[string]string) Binder {
 	return Values(p)
 }
 
+// All unpacks the entire set of form data into the given struct.
+func (b Binder) All(dst interface{}) (err error) {
+	return b.Field(dst, "")
+}
+
 // Field binds the given destination to a field of the given name from one or
 // more values in this binder.  The destination must be a pointer.
 // Returns an error of type bind.Error upon any sort of failure.
@@ -333,13 +338,16 @@ func nextKey(key string) string {
 func bindStruct(binder Binder, name string, dst reflect.Value) error {
 	fieldValues := make(map[string]struct{})
 	for key, _ := range binder.Values {
-		if !strings.HasPrefix(key, name+".") {
+		if name != "" && !strings.HasPrefix(key, name+".") {
 			continue
 		}
 
 		// Get the name of the struct property.
 		// Strip off the prefix. e.g. foo.bar.baz => bar.baz
-		suffix := key[len(name)+1:]
+		suffix := key
+		if name != "" {
+			suffix = key[len(name)+1:]
+		}
 		fieldName := nextKey(suffix)
 		fieldLen := len(fieldName)
 
@@ -352,7 +360,11 @@ func bindStruct(binder Binder, name string, dst reflect.Value) error {
 			if !fieldValue.CanSet() {
 				return Error{name, "field not settable: " + fieldName}
 			}
-			err := binder.field(fieldValue.Addr(), key[:len(name)+1+fieldLen])
+			subName := key[:fieldLen]
+			if name != "" {
+				subName = key[:len(name)+1+fieldLen]
+			}
+			err := binder.field(fieldValue.Addr(), subName)
 			if err != nil {
 				return Error{key[:len(name)+1+fieldLen], err.(Error).Message}
 			}
