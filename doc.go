@@ -1,5 +1,5 @@
 /*
-Package form provides conversions between form encoding and Go values.
+Package bind provides conversions between form encoding and Go values.
 
 Example
 

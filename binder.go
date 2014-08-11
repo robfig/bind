@@ -14,11 +14,14 @@ import (
 	"time"
 )
 
+// Binder handles binding of parameter maps to Go data structures.
 type Binder struct {
-	values map[string][]string
-	files  map[string][]*multipart.FileHeader
+	Values map[string][]string
+	Files  map[string][]*multipart.FileHeader
 }
 
+// Request returns a binder initialized with the request's form and query string
+// data (including multipart forms).
 func Request(req *http.Request) Binder {
 	req.ParseMultipartForm(10 * 1024 * 1024)
 	if req.MultipartForm != nil {
@@ -27,10 +30,12 @@ func Request(req *http.Request) Binder {
 	return Values(req.Form)
 }
 
+// Values returns a binder for the given query parameter map
 func Values(params map[string][]string) Binder {
 	return Binder{params, nil}
 }
 
+// Map returns a binder for the given parameter map
 func Map(m map[string]string) Binder {
 	var p = make(map[string][]string, len(m))
 	for k, v := range m {
@@ -39,8 +44,8 @@ func Map(m map[string]string) Binder {
 	return Values(p)
 }
 
-// Field takes the name and type of the desired parameter and constructs it
-// from one or more values from this binder.
+// Field binds the given destination to a field of the given name from one or
+// more values in this binder.  The destination must be a pointer.
 // Returns an error of type bind.Error upon any sort of failure.
 func (b Binder) Field(dst interface{}, name string) (err error) {
 	return b.field(reflect.ValueOf(dst), name)
@@ -79,6 +84,9 @@ func binderForType(typ reflect.Type) (Func, bool) {
 	return binder, true
 }
 
+// Func is a binding function that is responsible for extracting and converting
+// the relevant parameters from the binder and writing the result to the given
+// destination.
 type Func func(b Binder, name string, dst reflect.Value) error
 
 var (
@@ -135,7 +143,7 @@ func init() {
 // An adapter for easily making one-key-value binders.
 func valueBinder(f func(value string, dst reflect.Value) error) Func {
 	return func(b Binder, name string, dst reflect.Value) error {
-		vals, ok := b.values[name]
+		vals, ok := b.Values[name]
 		if !ok || len(vals) == 0 {
 			return Error{name, "no value found"}
 		}
@@ -149,13 +157,13 @@ func valueBinder(f func(value string, dst reflect.Value) error) Func {
 
 func bindValue(val string, dst reflect.Value) error {
 	return Binder{
-		values: map[string][]string{"": []string{val}},
+		Values: map[string][]string{"": []string{val}},
 	}.field(dst, "")
 }
 
 func bindFileValue(val *multipart.FileHeader, dst reflect.Value) error {
 	return Binder{
-		files: map[string][]*multipart.FileHeader{"": {val}},
+		Files: map[string][]*multipart.FileHeader{"": {val}},
 	}.field(dst, "")
 }
 
@@ -288,12 +296,12 @@ func bindSlice(binder Binder, name string, dst reflect.Value) error {
 		return nil
 	}
 
-	for key, vals := range binder.values {
+	for key, vals := range binder.Values {
 		if err := processElement(key, vals, nil); err != nil {
 			return err
 		}
 	}
-	for key, fileHeaders := range binder.files {
+	for key, fileHeaders := range binder.Files {
 		if err := processElement(key, nil, fileHeaders); err != nil {
 			return err
 		}
@@ -324,7 +332,7 @@ func nextKey(key string) string {
 
 func bindStruct(binder Binder, name string, dst reflect.Value) error {
 	fieldValues := make(map[string]struct{})
-	for key, _ := range binder.values {
+	for key, _ := range binder.Values {
 		if !strings.HasPrefix(key, name+".") {
 			continue
 		}
@@ -357,7 +365,7 @@ func bindStruct(binder Binder, name string, dst reflect.Value) error {
 
 // getMultipartFile returns an upload of the given name, or nil.
 func getMultipartFile(binder Binder, name string) (multipart.File, error) {
-	for _, fileHeader := range binder.files[name] {
+	for _, fileHeader := range binder.Files[name] {
 		return fileHeader.Open()
 	}
 	return nil, Error{name, "not found"}
@@ -427,7 +435,7 @@ func bindReadSeeker(binder Binder, name string, dst reflect.Value) error {
 }
 
 func bindFileHeader(binder Binder, name string, dst reflect.Value) error {
-	fileHeader, ok := binder.files[name]
+	fileHeader, ok := binder.Files[name]
 	if !ok {
 		return Error{name, "not found"}
 	}
