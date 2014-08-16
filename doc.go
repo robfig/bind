@@ -89,7 +89,7 @@ This is a wrapper around the upload handling provided by Go’s multipart
 package. The bytes stay in memory unless they exceed a threshold (10MB by
 default), in which case they are written to a temp file.
 
-Note: Binding a file upload to os.File requires Revel to write it to a temp file
+Note: Binding a file upload to os.File requires it to be written to a temp file
 (if it wasn’t already), making it less efficient than the other types.
 
 Slices
